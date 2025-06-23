@@ -1,0 +1,85 @@
+---
+title: "Mod10DataDiscovery_Group6"
+output: html_document
+date: "2024-04-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lme4)
+```
+
+Load and View Data Set
+```{r, message = F}
+data = read_csv("mmvideo.csv")
+View(data)
+```
+
+Line Plot Score by Age Group and Trial
+```{r}
+ggplot(data, aes(x=trial, y=score, group = as.factor(agegrp), color = agegrp)) +
+  geom_line() +
+  facet_wrap(~as.factor(agegrp)) + 
+  labs(title = "Score vs Trial by Age Group", x="Trial", y="Score") +
+  theme_minimal()
+```
+
+Box Plot Score by Age Group and Trial
+```{r}
+ggplot(data, aes(x=agegrp, y=score, fill=factor(trial))) + 
+  geom_boxplot() +
+  labs(title="Boxplot of Score by Age Group and Trial", x="Age Group", y="Score")+
+  theme_minimal()
+```
+```{r, message= F}
+agegrp_condition = data |>
+  group_by(agegrp, trial) |>
+  summarize(mean_score = mean(score))
+
+ggplot(agegrp_condition, aes(x=trial, y=mean_score, color=agegrp, group=agegrp)) +
+    geom_line(linewidth=2) + geom_point(size=5, shape=21, fill="white")
+```
+
+Plot Individual Regressions
+```{r, message = F}
+ggplot(data, aes(x=trial, y=score)) +
+    geom_point() +
+    geom_smooth(method="lm",aes(color=id),se=F) +
+    scale_x_continuous(breaks=1:5) +
+    facet_wrap("id", labeller = label_both)
+```
+Note: two subjects share the same id 'AC'
+
+Modeling
+```{r, message = F}
+# Simple Linear Regression Model:
+# Fixed effects for 'agegrp' and 'trial'. No random effects.
+mod1 = lm(score ~ agegrp + trial, data)
+
+# Mixed Effect Models:
+# Fixed effect for 'trial', random intercept for 'id'.
+mod2 = lmer(score ~ trial + (1|id), data)
+
+# Fixed effects for 'agegrp' and 'trial', random intercept for 'id'.
+mod3 = lmer(score ~ agegrp + trial + (1|id), data)
+
+# Fixed effects for 'agegrp' and 'trial', random intercept and slope for 'id'.
+mod4 = lmer(score ~ agegrp + trial + (1 + trial|id), data)
+
+AIC(mod1)
+AIC(mod2)
+AIC(mod3)
+AIC(mod4)
+
+# Best Model Summary & Confint:
+summary(mod4)
+confint(mod4)
+
+# Analysis:
+# At alpha = 0. 05
+# Effects of agegrp not statistically significant
+# Effects of trial are statistically significant
+
+```
+
